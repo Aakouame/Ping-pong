@@ -1,0 +1,40 @@
+version: "3.7"
+
+services:
+  database:
+    image: postgres:12
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=db
+    networks:
+        - hidden
+    ports:
+      - "5432:5432"
+  nestjs:
+    build : ./backend/.
+    image: nestjs
+    env_file:
+      - ./.env
+    ports:
+      - "3001:3001"
+    networks:
+        - hidden
+    depends_on:
+      - database
+  nextjs:
+    build : ./frontend/.
+    env_file:
+      - ./.env
+    image: nextjs
+    ports:
+      - "3000:3000"
+    networks:
+        - hidden
+    depends_on:
+      - nestjs
+
+networks:
+  hidden:
+    name: hidden
+    driver: bridge

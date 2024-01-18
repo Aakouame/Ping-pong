@@ -1,0 +1,4 @@
+- close tab if user opens two
+- first time login gives an error
+- the login doesn't work sometimes
+- edit channel doesn't work

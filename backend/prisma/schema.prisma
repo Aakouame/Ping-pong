@@ -1,0 +1,204 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+	provider = "postgresql"
+	url      = env("DATABASE_URL")
+}
+
+enum RoomType{
+	PRIVATE
+	PROTECTED
+	PUBLIC
+}
+
+model User {
+	id						String      @id @default(uuid())
+	full_name				String
+	intra_42_id				Int @unique
+	nickName				String @unique
+
+
+	fac_auth				Boolean @default(false)
+	last_activity			DateTime
+
+	first_time				Boolean @default(true)
+
+	is_active				String	@default("offline")
+	
+	games					Int			@default(0)
+	win						Int			@default(0)
+	lose					Int			@default(0)
+	
+	// relationship with frienship
+	user					Friendship[] @relation("user")
+	friends					Friendship[] @relation("friends")
+	// relationship with profile
+	profile					Profile?
+	achievement		achievement?
+
+	// relationship with game_history
+	player_history			games_history[] @relation("player")
+	opponent_history		games_history[] @relation("opponent")
+	sendMessage				RoomMessage[]
+
+	// Define a relation to direct messages sent by the user
+  	sentDirectMessages DirectMessage[] @relation("SentDirectMessages")
+
+  	//// Define a relation to direct messages received by the user
+  	receivedDirectMessages DirectMessage[] @relation("ReceivedDirectMessages")
+
+  	//// Define a relation to rooms owned by the user
+  	ownedRooms   Room[] @relation("OwnedRooms")
+
+  	//// Define a relation to rooms where the user is an admin
+  	adminRooms   Room[] @relation("AdminRooms")
+
+  	//// Define a relation to rooms where the user is a member
+  	memberRooms  Room[] @relation("MemberRooms")
+
+  	//// Define a relation to rooms where the user is a muted
+  	muted  Room[] @relation("muted")
+
+  	//// Define a relation to rooms where the user is a banned
+	banned Room[]  @relation("banned")
+
+
+	// blocked users
+}
+
+model Friendship {
+	id						Int      @id @default(autoincrement())
+	createdAt				DateTime @default(now())
+
+	userId				String
+	user				User @relation("user", fields: [userId], references: [id])
+
+	friendId			String
+	friend				User @relation("friends", fields: [friendId], references: [id])
+	is_blocked 			Boolean @default(false)
+
+	@@unique([userId,friendId])
+}
+
+
+model Profile {
+	userID					String @unique
+	User					User @relation(fields: [userID],references: [id])
+
+	photo_path				String @default("default_img")
+	//here id of the image it self
+	photoID						String	@default("default_img")
+
+
+	friend_number			Int @default(0)
+	level					Float @default(0)
+	TwoFac_pass				String?
+	QR_url				String?
+}
+
+
+model games_history{
+	id						String	@id @default(uuid())
+
+	player_id				String
+	Player					User @relation("player",fields: [player_id],references: [id])
+
+	opponent_id				String
+	opponent				User @relation("opponent",fields: [opponent_id],references: [id])
+
+
+	xp_level	Int
+	date					DateTime @default(now())
+	result					Boolean
+}
+
+model achievement {
+	id			String @id @default(uuid())
+	user_id		String @unique
+	user		User @relation(fields:[user_id],references:[id])
+
+	kickstart	Boolean @default(false)
+	social		Boolean @default(false)
+	first_game	Boolean @default(false)
+	level_1		Boolean @default(false)
+	level_5		Boolean @default(false)
+}
+
+
+// Define the RoomMessage entity
+model RoomMessage {
+  id         Int    @id @default(autoincrement())
+  content    String
+  roomId     String
+  createdAt  DateTime @default(now())
+
+
+  // Define a relation to the sender of the message
+  senderId   String
+  sender User @relation(fields: [senderId], references: [id])
+
+  // Define a relation to the room where the message is sent
+  room Room @relation(fields: [roomId], references: [id])
+}
+
+
+// Define the DirectMessage entity
+model DirectMessage {
+  id         String      @id @default(uuid())
+  content    String
+  createdAt  DateTime @default(now())
+
+
+  // ... other direct message fields
+
+  // Define a relation to the sender of the direct message
+  senderId   String
+  sender   User @relation("SentDirectMessages", fields: [senderId], references: [id])
+
+  // Define a relation to the receiver of the direct message
+  receiverId String
+  receiver User @relation("ReceivedDirectMessages", fields: [receiverId], references: [id])
+}
+
+// Define the Room entity
+model Room {
+  id       String      @id @default(uuid())
+  name     String		@unique
+  type     RoomType
+  password String?
+
+  photo		String		@default("default_img")
+  // ... other room fields
+
+  // Define a relation to messages sent in the room
+  messages RoomMessage[]
+
+  //// Define a relation to the owner of the room
+  ownerId  String
+  owner   User    @relation("OwnedRooms", fields: [ownerId], references: [id])
+
+  //// Define a relation to admins of the room
+  admins  User[]  @relation("AdminRooms")
+
+  // Define a relation to members of the room
+  members User[]  @relation("MemberRooms")
+
+  // Define a relation to muted of the room
+  muted User[]  @relation("muted")
+
+  // Define a relation to muted of the room
+  banned User[]  @relation("banned")
+}
+
+model Session {
+  id        String   @id
+  sid       String   @unique
+  data      String
+  expiresAt   DateTime
+}
